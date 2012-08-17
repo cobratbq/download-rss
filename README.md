@@ -5,3 +5,6 @@ Trivial commandline podcast rss feed downloader just for playing around with the
 
 Usage:
 > download-rss -f feed.xml
+
+References:
+- Nice example of efficiently parsing xml with go: [Parsing huge xml files with go](http://blog.davidsingleton.org/parsing-huge-xml-files-with-go/)
