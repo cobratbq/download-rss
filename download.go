@@ -10,8 +10,12 @@ import (
 )
 
 type PodcastEntry struct {
-	Title string `xml:"title"`
-	Link  string `xml:"guid"`
+	Title     string `xml:"title"`
+	Enclosure struct {
+		Url    string `xml:"url,attr"`
+		Length uint64 `xml:"length,attr"`
+		Type   string `xml:"type,attr"`
+	} `xml:"enclosure"`
 }
 
 func main() {
@@ -58,7 +62,7 @@ func downloadEntriesFromRSSFile(filePath *string) error {
 					log.Printf("An error occurred during decoding. (%s)", err.Error())
 				}
 				fmt.Printf("Downloading '%s'\n", entry.Title)
-				err = execute("wget", "-c", entry.Link)
+				err = execute("wget", "-c", entry.Enclosure.Url)
 				if err != nil {
 					log.Printf("Error occurred during execution: %s", err.Error())
 				}
