@@ -7,4 +7,4 @@ Usage:
 > download-rss -f feed.xml
 
 References:
-- Nice example of efficiently parsing xml with go: [Parsing huge xml files with go](http://blog.davidsingleton.org/parsing-huge-xml-files-with-go/)
+- [Parsing huge xml files with go](http://blog.davidsingleton.org/parsing-huge-xml-files-with-go/): Nice example of efficiently parsing xml with go.
