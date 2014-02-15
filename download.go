@@ -4,48 +4,57 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 )
 
+// PodcastEntry containing all relevant fields for downloading.
 type PodcastEntry struct {
 	Title     string `xml:"title"`
 	Enclosure struct {
-		Url    string `xml:"url,attr"`
+		URL    string `xml:"url,attr"`
 		Length uint64 `xml:"length,attr"`
 		Type   string `xml:"type,attr"`
 	} `xml:"enclosure"`
 }
 
+// Application for downloading podcasts from RSS feeds.
+//
+// First argument is the file path to the RSS file. If no argument was
+// provided, Stdin is used as the RSS feed source.
 func main() {
-	path := initialize()
-	err := downloadEntriesFromRSSFile(path)
-	if err != nil {
-		fmt.Println(err)
-		fmt.Println()
-		flag.Usage()
-	}
-}
-
-func initialize() *string {
-	path := flag.String("f", "rssfeed.xml", "Path to RSS feed xml file.")
 	flag.Parse()
-	return path
+	source, err := getFeedSource()
+	if err != nil {
+		os.Stderr.WriteString(err.Error() + "\n")
+		return
+	}
+	defer source.Close()
+	err = downloadEntriesFromRSSFile(source)
+	if err != nil {
+		os.Stderr.WriteString(err.Error() + "\n")
+	}
+	return
 }
 
-func downloadEntriesFromRSSFile(filePath *string) error {
-
-	//Open file for reading.
-	file, err := os.Open(*filePath)
-	if err != nil {
-		log.Printf("Failed to open '%s'. (%s)", *filePath, err.Error())
-		return err
+func getFeedSource() (io.ReadCloser, error) {
+	if flag.NArg() < 1 {
+		return os.Stdin, nil
 	}
-	defer file.Close()
+	// Open file for reading.
+	filePath := flag.Arg(0)
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
+}
 
-	//Parse the xml file for the 'item' tag and read the title and url from each entry.
-	decoder := xml.NewDecoder(file)
+func downloadEntriesFromRSSFile(source io.Reader) error {
+	// Parse the xml file for the 'item' tag and read the title and url from each entry.
+	decoder := xml.NewDecoder(source)
 	for {
 		token, _ := decoder.Token()
 		if token == nil {
@@ -62,14 +71,13 @@ func downloadEntriesFromRSSFile(filePath *string) error {
 					log.Printf("An error occurred during decoding. (%s)", err.Error())
 				}
 				fmt.Printf("Downloading '%s'\n", entry.Title)
-				err = execute("wget", "-c", entry.Enclosure.Url)
+				err = execute("wget", "-c", entry.Enclosure.URL)
 				if err != nil {
 					log.Printf("Error occurred during execution: %s", err.Error())
 				}
 			}
 		}
 	}
-
 	return nil
 }
 
