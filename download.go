@@ -28,14 +28,15 @@ func main() {
 	flag.Parse()
 	source, err := getFeedSource()
 	if err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
+		os.Stderr.WriteString("failed to acquire feed: " + err.Error() + "\n")
 		return
 	}
 	defer source.Close()
-	err = downloadEntriesFromRSSFile(source)
+	numFailedDownloads, err := downloadEntriesFromRSSFile(source)
 	if err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
+		os.Stderr.WriteString("error while downloading podcasts: " + err.Error() + "\n")
 	}
+	fmt.Printf("Finished downloading podcasts. (%d downloads failed)\n", numFailedDownloads)
 	return
 }
 
@@ -52,7 +53,8 @@ func getFeedSource() (io.ReadCloser, error) {
 	return file, nil
 }
 
-func downloadEntriesFromRSSFile(source io.Reader) error {
+func downloadEntriesFromRSSFile(source io.Reader) (int, error) {
+	var numberFailed = 0
 	// Parse the xml file for the 'item' tag and read the title and url from each entry.
 	decoder := xml.NewDecoder(source)
 	for {
@@ -69,16 +71,18 @@ func downloadEntriesFromRSSFile(source io.Reader) error {
 				err := decoder.DecodeElement(&entry, &t)
 				if err != nil {
 					log.Printf("An error occurred during decoding. (%s)", err.Error())
+					return numberFailed, err
 				}
 				fmt.Printf("Downloading '%s'\n", entry.Title)
 				err = execute("wget", "-c", entry.Enclosure.URL)
 				if err != nil {
+					numberFailed += 1
 					log.Printf("Error occurred during execution: %s", err.Error())
 				}
 			}
 		}
 	}
-	return nil
+	return numberFailed, nil
 }
 
 func execute(command string, args ...string) error {
