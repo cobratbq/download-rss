@@ -5,6 +5,12 @@ Trivial commandline podcast rss feed downloader just for playing around with the
 
 If an argument is provided, that argument is used as the source for downloading the podcasts. If no argument is provided, stdin is used as the source.
 
+~~~
+-o <directory>
+~~~
+
+With *directory* being an existing directory to download podcasts into the specified output directory.
+
 Usage:
 > download-rss feed.xml
 

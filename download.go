@@ -25,7 +25,10 @@ type PodcastEntry struct {
 // First argument is the file path to the RSS file. If no argument was
 // provided, Stdin is used as the RSS feed source.
 func main() {
-	flag.Parse()
+	if err := initialize(); err != nil {
+		os.Stderr.WriteString("error during initialization: " + err.Error() + "\n")
+		return
+	}
 	source, err := getFeedSource()
 	if err != nil {
 		os.Stderr.WriteString("failed to acquire feed: " + err.Error() + "\n")
@@ -40,6 +43,23 @@ func main() {
 	return
 }
 
+// Set up the environment according to program arguments.
+func initialize() error {
+	// configuration options
+	workingDir := flag.String("o", "", "Output directory for downloads.")
+	flag.Parse()
+	// initialize based on commandline arguments
+	if len(*workingDir) > 0 {
+		if err := os.Chdir(*workingDir); err != nil {
+			return err
+		}
+		os.Stdout.WriteString("Changed working directory to '" + *workingDir + "'.\n\n")
+		os.Stdout.Sync()
+	}
+	return nil
+}
+
+// Get feed source and return a reader.
 func getFeedSource() (io.ReadCloser, error) {
 	if flag.NArg() < 1 {
 		return os.Stdin, nil
@@ -53,6 +73,10 @@ func getFeedSource() (io.ReadCloser, error) {
 	return file, nil
 }
 
+// Download entries from RSS feed in provided Reader.
+//
+// Returns the number of failed downloads up to point of finished operation or
+// until the error occurred.
 func downloadEntriesFromRSSFile(source io.Reader) (int, error) {
 	var numberFailed = 0
 	// Parse the xml file for the 'item' tag and read the title and url from each entry.
@@ -85,6 +109,7 @@ func downloadEntriesFromRSSFile(source io.Reader) (int, error) {
 	return numberFailed, nil
 }
 
+// Execute a program and connect Stdout and Stderr to our output.
 func execute(command string, args ...string) error {
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = os.Stdout
