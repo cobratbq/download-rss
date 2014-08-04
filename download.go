@@ -1,3 +1,6 @@
+/*
+download-rss is a command line application that downloads and parses an RSS feed URL and downloads the podcast episodes it can find inside.
+*/
 package main
 
 import (
